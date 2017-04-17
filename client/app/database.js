@@ -1,5 +1,8 @@
 import React from 'react';
 
+/*Migrate Data to Mock Database on Server
+I read this section in the workshop.
+*/
 var initialData = {
   // The "user" collection. Contains all of the users in our Facebook system.
   "users": {
