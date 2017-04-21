@@ -73,6 +73,7 @@ app.delete('/feeditem/:feeditemid/likelist/:userid', function(req, res) {
     // Return a resolved version of the likeCounter
     // Note that this request succeeds even if the
 	// user already unliked the request!
+    res.status(200);
     res.send(feedItem.likeCounter.map((userId) => readDocument('users', userId)));
   } else {
     // 401: Unauthorized.
@@ -94,6 +95,7 @@ app.put('/feeditem/:feeditemid/likelist/:userid', function(req, res) {
       writeDocument('feedItems', feedItem);
     }
     // Return a resolved version of the likeCounter
+    res.status(200);
     res.send(feedItem.likeCounter.map((userId) => readDocument('users', userId)));
   } else {
     // 401: Unauthorized.
@@ -104,23 +106,19 @@ app.put('/feeditem/:feeditemid/likelist/:userid', function(req, res) {
 // Like a comment.
 app.put('/feeditem/:feeditemid/comments/:commentidx/likelist/:userid', function(req, res) {
   var fromUser = getUserIdFromToken(req.get('Authorization'));
-  // Convert params from string to number.
   var feedItemId = parseInt(req.params.feeditemid, 10);
   var userId = parseInt(req.params.userid, 10);
   var commentIdx = parseInt(req.params.commentidx, 10);
   if (fromUser === userId) {
     var feedItem = readDocument('feedItems', feedItemId);
-    // Add to likeCounter if not already present.
     if (feedItem.comments[commentIdx].likeCounter.indexOf(userId) === -1) {
       feedItem.comments[commentIdx].likeCounter.push(userId);
-      writeDocument('feedItems', feedItem);
     }
-    // Return a resolved version of the likeCounter
-    feedItem.comments = feedItem.comments.map(getCommentSync)
-    console.log(feedItem.comments);
+    writeDocument('feedItems', feedItem);
+    feedItem.comments[commentIdx].author = readDocument('users', feedItem.comments[commentIdx].author);
+    res.status(200);
     res.send(feedItem.comments[commentIdx]);
   } else {
-    // 401: Unauthorized.
     res.status(401).end();
   }
 });
@@ -128,25 +126,20 @@ app.put('/feeditem/:feeditemid/comments/:commentidx/likelist/:userid', function(
 // Unlike a comment.
 app.delete('/feeditem/:feeditemid/comments/:commentidx/likelist/:userid', function(req, res) {
   var fromUser = getUserIdFromToken(req.get('Authorization'));
-  // Convert params from string to number.
   var feedItemId = parseInt(req.params.feeditemid, 10);
   var userId = parseInt(req.params.userid, 10);
   var commentIdx = parseInt(req.params.commentidx, 10);
   if (fromUser === userId) {
     var feedItem = readDocument('feedItems', feedItemId);
     var likeIndex = feedItem.comments[commentIdx].likeCounter.indexOf(userId);
-    // Remove from likeCounter if present
     if (likeIndex !== -1) {
       feedItem.comments[commentIdx].likeCounter.splice(likeIndex, 1);
-      writeDocument('feedItems', feedItem);
     }
-    // Return a resolved version of the likeCounter
-    // Note that this request succeeds even if the
-	// user already unliked the request!
-    feedItem.comments = feedItem.comments.map(getCommentSync)
-    res.send(feedItem.comments[commentIdx].likeCounter.map((userId) => readDocument('users', userId)));
+    writeDocument('feedItems', feedItem);
+    feedItem.comments[commentIdx].author = readDocument('users', feedItem.comments[commentIdx].author);
+    res.status(200);
+    res.send(feedItem.comments[commentIdx]);
   } else {
-    // 401: Unauthorized.
     res.status(401).end();
   }
 });
@@ -176,6 +169,7 @@ app.delete('/feeditem/:feeditemid', function(req, res) {
       }
     });
     // Send a blank response to indicate success.
+    res.status(200);
     res.send();
   } else {
     // 401: Unauthorized.
@@ -231,6 +225,7 @@ app.put('/feeditem/:feeditemid/content', function(req, res) {
     // Update text content of update.
     feedItem.contents.contents = req.body;
     writeDocument('feedItems', feedItem);
+    res.status(200);
     res.send(getFeedItemSync(feedItemId));
   } else {
     // 401: Unauthorized.
@@ -253,16 +248,15 @@ app.post('/feeditem/:feeditemid/comments/', validate({ body: CommentSchema }), f
   var fromUser = getUserIdFromToken(req.get('Authorization'));
   var feedItemId = req.params.feeditemid;
   var feedItem = readDocument('feedItems', feedItemId);
-  if (fromUser === 1 ||  fromUser === 2 || fromUser === 3 || fromUser === 4) {
-    // Update text content of update.
+  if (fromUser === req.body.author) {
     var newComment = postComment(feedItemId, req.body.author, req.body.contents)
     feedItem.comments.push(newComment);
     writeDocument('feedItems', feedItem);
     var id = getFeedItemSync(feedItemId)
-    res.set('Location', '/feeditem/' + id._id)
+    res.status(201);
+    res.set('Location', '/feeditem/' + id._id);
     res.send(id);
   } else {
-    // 401: Unauthorized.
     res.status(401).end();
   }
 });
@@ -297,6 +291,7 @@ function getFeedItemSync(feedItemId) {
   return feedItem;
 }
 
+/*
 function getCommentSync(comment) {
   comment.likeCounter = comment.likeCounter.map((id) =>
                             readDocument('users', id));
@@ -307,6 +302,7 @@ function getCommentSync(comment) {
   // Resolve comment author.
   return comment;
 }
+*/
 
 /**
  * Get the feed data for a particular user.
@@ -359,6 +355,7 @@ app.get('/user/:userid/feed', function(req, res) {
   if (fromUser === useridNumber) {
     // Send response.
     res.send(getFeedData(userid));
+    res.status(200);
   } else {
     // 401: Unauthorized request.
     res.status(401).end();
