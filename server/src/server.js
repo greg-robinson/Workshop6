@@ -177,37 +177,6 @@ app.delete('/feeditem/:feeditemid', function(req, res) {
   }
 });
 
-/*
-app.delete('/feeditem/:feeditemid/comments/:userid', function(req, res) {
-  var fromUser = getUserIdFromToken(req.get('Authorization'));
-  // Convert from a string into a number.
-  var feedItemId = parseInt(req.params.feeditemid, 10);
-  var feedItem = readDocument('feedItems', feedItemId);
-  // Check that the author of the post is requesting the delete.
-  if (feedItem.comments.author === fromUser) {
-    database.deleteDocument('feedItems', feedItemId);
-    // Remove references to this feed item from all other feeds.
-    var feeds = database.getCollection('feeds');
-    var feedIds = Object.keys(feeds);
-    feedIds.forEach((feedId) => {
-      var feed = feeds[feedId];
-      var itemIdx = feed.contents.indexOf(feedItemId);
-      if (itemIdx !== -1) {
-        // Splice out of array.
-        feed.contents.splice(itemIdx, 1);
-        // Update feed.
-        database.writeDocument('feeds', feed);
-      }
-    });
-    // Send a blank response to indicate success.
-    res.send();
-  } else {
-    // 401: Unauthorized.
-    res.status(401).end();
-  }
-});
-*/
-
 // Update a feed item.
 app.put('/feeditem/:feeditemid/content', function(req, res) {
   var fromUser = getUserIdFromToken(req.get('Authorization'));
